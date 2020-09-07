@@ -1,0 +1,103 @@
+#Q1
+import numpy as np 
+import matplotlib.pyplot as plt
+import pandas as pd
+dataset=pd.read_csv("C:\\Users\\97254\\Documents\\ML\\autos_copy.csv")
+dataset.head(6) #check the data
+
+#step 2 > fiil the empty fields
+dataset2=dataset.fillna(method='bfill') #fill in missing data for all columns
+
+#step3 > split the data in 2 arrays: 
+x = dataset2.iloc [:,0:-1 ].values #Independent variable
+y = dataset2.iloc [:, -1 ].values #dependent variable
+
+#step 4> encoding categorical data to numbers
+from sklearn.preprocessing import Imputer
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+labelencoder_X = LabelEncoder()
+
+x[:, 2]=labelencoder_X.fit_transform(x[:, 2]) #fuel column
+x[:, 3]=labelencoder_X.fit_transform(x[:, 3]) #aspiration column
+x[:, 4]=labelencoder_X.fit_transform(x[:, 4]) #num_of_doors
+x[:, 5]=labelencoder_X.fit_transform(x[:, 5]) #body_type
+x[:, 6]=labelencoder_X.fit_transform(x[:, 6]) #drive_wheels
+x[:, 7]=labelencoder_X.fit_transform(x[:, 7]) #drive_wheels
+
+x[:, 13]=labelencoder_X.fit_transform(x[:, 13]) #engine_type
+x[:, 14]=labelencoder_X.fit_transform(x[:, 14]) #cylinders
+x[:, 16]=labelencoder_X.fit_transform(x[:, 16]) #fuel_system
+
+#step 5 > dummy encoding
+a=pd.DataFrame(x) #Independent variable as dataframe
+x=pd.get_dummies(a, columns=[2, 3, 4, 5, 6, 7, 13, 14,16])
+
+#Q2
+#backward elimination - preparation
+import statsmodels.regression.linear_model as sm 
+import statsmodels.tools.tools as tl
+x=np.append(arr=np.ones((205,1)).astype(int),values=x,axis=1) #add constant
+
+x=x.astype(np.float64)
+x_opt=x[:, [0,4,5,7,8,10,13,18,24,26,30,33,35,37,40,41,42,44,52]]
+ols=sm.OLS(endog=y,exog=x_opt).fit()
+ols.summary()
+
+#Q3
+#splitting data: training & test set א+ב
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x_opt, y, test_size = 0.2, random_state = 0)
+
+#linear regression
+from sklearn.linear_model import LinearRegression 
+regressor = LinearRegression() 
+regressor.fit(x_train, y_train)
+y_pred=regressor.predict(x_test)
+b_0=regressor.intercept_
+b_i=regressor.coef_
+
+#cross validation to regression
+#dont work, didnt found how to fix it. 
+from sklearn.model_selection import cross_val_score
+accuracies=cross_val_score(regressor,x_train,y,cv=10,scoring='neg_mean_squared_error')
+print(accuracies.mean())
+print(accuracies.std())
+
+#polynomial refression for some features:
+#i will take columns with p=0.000
+
+from sklearn.preprocessing import PolynomialFeatures
+poly_reg=PolynomialFeatures(degree=2)
+t=pd.DataFrame(x[:,4])
+x_poly=poly_reg.fit_transform(t)
+
+lin_reg_2=LinearRegression()
+lin_reg_2.fit(x_poly,y)
+
+
+plt.scatter(t,y,color='red')
+plt.plot(t,lin_reg_2.predict(x_poly),color='blue')
+plt.title('poly regression')
+plt.title('Fuel')
+plt.ylabel('Car price')
+plt.show()
+
+poly_reg=PolynomialFeatures(degree=3)
+t=pd.DataFrame(x[:,4]) #otherwise it didnt work because it doesnt have same size, so i found this solution online
+x_poly=poly_reg.fit_transform(t)
+
+lin_reg_2=LinearRegression()
+lin_reg_2.fit(x_poly,y)
+
+
+plt.scatter(t,y,color='red')
+plt.plot(t,lin_reg_2.predict(x_poly),color='blue')
+plt.title('poly regression')
+plt.title('Fuel')
+plt.ylabel('Car price')
+plt.show()
+
+#cross validation to poly regression for Fuel column
+accuracies=cross_val_score(estimator=lin_reg_2,x=x_poly,y=y,cv=10,scoring='neg_mean_squared_error')
+print(accuracies.mean())
+print(accuracies.std())
